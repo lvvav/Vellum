@@ -159,7 +159,7 @@ object Links {
         val tun = JSONObject().put("type", "tun").put("tag", "tun-in")
             .put("address", JSONArray().put("172.19.0.1/30"))
             .put("mtu", 1400).put("auto_route", true).put("strict_route", true).put("stack", "system")
-        val route = JSONObject().put("auto_detect_interface", true).put("final", "proxy")
+        val route = JSONObject().put("final", "proxy")
             .put("rules", JSONArray()
                 .put(JSONObject().put("action", "sniff"))
                 .put(JSONObject().put("protocol", "dns").put("action", "hijack-dns")))

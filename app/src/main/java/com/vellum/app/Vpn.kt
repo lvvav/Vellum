@@ -3,6 +3,8 @@ package com.vellum.app
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.widget.Toast
 import androidx.compose.runtime.getValue
@@ -56,6 +58,7 @@ object Vpn {
 class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     private var box: CommandServer? = null
     private var tun: ParcelFileDescriptor? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == Vpn.ACTION_STOP) {
@@ -64,16 +67,21 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         }
         val config = intent?.getStringExtra(Vpn.EXTRA_CONFIG) ?: return START_NOT_STICKY
         closeBox()
-        try {
-            val server = CommandServer(this, this)
-            server.start()
-            server.startOrReloadService(config, OverrideOptions())
-            box = server
-            VpnControl.conn = Conn.Connected
-        } catch (e: Exception) {
-            Toast.makeText(this, "VPN не запустился: ${e.message}", Toast.LENGTH_LONG).show()
-            shutdown()
-        }
+        // Запуск ядра тяжёлый и блокирующий: делаем его не в главном потоке, интерфейс не должен висеть
+        Thread {
+            try {
+                val server = CommandServer(this, this)
+                server.start()
+                server.startOrReloadService(config, OverrideOptions())
+                box = server
+                mainHandler.post { VpnControl.conn = Conn.Connected }
+            } catch (e: Throwable) {
+                mainHandler.post {
+                    Toast.makeText(this, "VPN не запустился: ${e.message}", Toast.LENGTH_LONG).show()
+                    shutdown()
+                }
+            }
+        }.start()
         return START_NOT_STICKY
     }
 

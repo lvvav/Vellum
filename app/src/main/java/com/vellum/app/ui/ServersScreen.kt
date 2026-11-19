@@ -72,7 +72,7 @@ fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            itemsIndexed(s.servers, key = { _, it -> it.name }) { i, server ->
+            itemsIndexed(s.servers, key = { i, it -> "$i|${it.name}" }) { i, server ->
                 val on = i == s.selected
                 val tint by animateColorAsState(
                     if (on) Palette.Good.copy(alpha = 0.18f) else Color.Transparent, tween(300), label = "sel"
