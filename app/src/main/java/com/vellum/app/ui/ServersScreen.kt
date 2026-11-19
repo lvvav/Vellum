@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
@@ -98,10 +101,26 @@ fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
                         if (on) {
                             Icon(Icons.Rounded.Check, null, tint = Palette.Good, modifier = Modifier.padding(end = 10.dp).size(22.dp))
                         }
-                        PingChip(server.ping)
+                        StatusBadge(server)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StatusBadge(server: Server) {
+    when {
+        server.ping != null -> Text(
+            "${server.ping} мс", style = Type.Caption, color = Palette.Good,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+        server.bad -> Box(
+            Modifier.padding(start = 8.dp).size(22.dp).clip(CircleShape).background(Color(0xFFE53935)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Rounded.Close, "Не работает", tint = Color.White, modifier = Modifier.size(14.dp))
         }
     }
 }

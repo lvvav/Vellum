@@ -33,6 +33,12 @@ object Store {
         prefs(ctx).edit().putString("servers", a.toString()).apply()
     }
 
+    fun fullCheck(ctx: Context): Boolean = prefs(ctx).getBoolean("fullCheck", false)
+
+    fun saveFullCheck(ctx: Context, v: Boolean) {
+        prefs(ctx).edit().putBoolean("fullCheck", v).apply()
+    }
+
     fun selected(ctx: Context): Int = prefs(ctx).getInt("selected", 0)
 
     fun saveSelected(ctx: Context, i: Int) {

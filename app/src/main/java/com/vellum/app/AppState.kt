@@ -7,12 +7,16 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 enum class Conn { Idle, Connecting, Connected }
 
 /** Сервер для экрана: outbound храним строкой JSON. */
-data class Server(val flag: String, val name: String, val ping: Int?, val type: String = "", val outbound: String = "")
+data class Server(val flag: String, val name: String, val ping: Int?, val type: String = "", val outbound: String = "", val bad: Boolean = false)
 
 class AppState(private val ctx: Context) {
     val conn: Conn get() = VpnControl.conn
@@ -29,6 +33,7 @@ class AppState(private val ctx: Context) {
     var autoConnect by mutableStateOf(false)
     var splitTunnel by mutableStateOf(false)
     var smoothMotion by mutableStateOf(true)
+    var fullCheck by mutableStateOf(Store.fullCheck(ctx))
 
     val alive get() = servers.size
 
@@ -39,6 +44,11 @@ class AppState(private val ctx: Context) {
     }
 
     fun current(): Server? = servers.getOrNull(selected)
+
+    fun setFullCheck(v: Boolean) {
+        fullCheck = v
+        Store.saveFullCheck(ctx, v)
+    }
 
     fun select(i: Int) {
         selected = i
@@ -57,11 +67,30 @@ class AppState(private val ctx: Context) {
         Store.saveSources(ctx, channels.toList())
     }
 
-    /** Загружает все подписки и ссылки, собирает список серверов. Возвращает текст для пользователя. */
+    /** Проверяет все серверы: быстро (TCP) или полно (через sing-box), если включено и VPN выключен. */
+    suspend fun checkAll() {
+        val list = servers.toList()
+        if (list.isEmpty()) return
+        val full = fullCheck && VpnControl.conn == Conn.Idle
+        val pings: List<Int?> = withContext(Dispatchers.IO) {
+            if (full) list.map { probe(it, true) }
+            else coroutineScope { list.map { async { probe(it, false) } }.awaitAll() }
+        }
+        pings.forEachIndexed { i, p ->
+            if (i < servers.size) servers[i] = servers[i].copy(ping = p, bad = p == null)
+        }
+    }
+
+    private fun probe(sv: Server, full: Boolean): Int? {
+        val ob = runCatching { JSONObject(sv.outbound) }.getOrNull() ?: return null
+        return if (full) FullCheck.run(ob) else Check.tcp(ob.getString("server"), ob.getInt("server_port"))
+    }
+
+    /** Загружает все подписки и ссылки, собирает список и проверяет серверы. Возвращает текст для пользователя. */
     suspend fun refresh(): String {
         if (refreshing) return "Уже обновляем"
         refreshing = true
-        return try {
+        try {
             val sources = channels.toList()
             val nodes = withContext(Dispatchers.IO) {
                 sources.flatMap { src ->
@@ -77,7 +106,9 @@ class AppState(private val ctx: Context) {
             selected = 0
             Store.saveServers(ctx, list)
             Store.saveSelected(ctx, 0)
-            if (list.isEmpty()) "Серверов не найдено" else "Серверов: ${list.size}"
+            if (list.isEmpty()) return "Серверов не найдено"
+            checkAll()
+            return "Рабочих: ${servers.count { it.ping != null }} из ${servers.size}"
         } finally {
             refreshing = false
         }

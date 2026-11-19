@@ -104,6 +104,10 @@ fun SettingsScreen(s: AppState) {
             UpdateBlock()
         }
 
+        Group("Проверка серверов") {
+            SwitchRow(Icons.Rounded.Bolt, "Полная проверка", "Через VPN-ядро: дольше, зато точнее", s.fullCheck) { s.setFullCheck(it) }
+        }
+
         Group("Вид") {
             SwitchRow(Icons.Rounded.AutoAwesome, "Плавное движение", "Анимация фона и кнопки", s.smoothMotion) { s.smoothMotion = it }
         }
