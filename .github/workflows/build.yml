@@ -49,11 +49,7 @@ jobs:
         if: always()
         run: |
           AAR=$(find ~/.gradle -name "libbox*.aar" | head -1)
-          echo "AAR: $AAR"
-          mkdir -p /tmp/lb && cd /tmp/lb && unzip -o -q "$AAR" && ls -la
-          for c in PlatformInterface CommandServer CommandServerHandler TunOptions OverrideOptions Libbox; do
-            echo "===== $c"
-            javap -cp classes.jar "io.nekohasekai.libbox.$c" || true
-          done
-          echo "===== Libbox static setup/new methods"
-          javap -cp classes.jar io.nekohasekai.libbox.Libbox | grep -E "setup|newService|Service|Command|Options|static" | grep -v "public static final" || true
+          mkdir -p /tmp/lb && cd /tmp/lb && unzip -o -q "$AAR"
+          echo "===== setup-related Libbox methods"
+          javap -cp classes.jar io.nekohasekai.libbox.Libbox | grep -iE "setup|basePath|workingPath|directory" || true
+          for c in SetupOptions; do echo "===== $c"; javap -cp classes.jar "io.nekohasekai.libbox.$c" || true; done
