@@ -44,3 +44,14 @@ jobs:
             version.txt
           overwrite_files: true
           prerelease: true
+
+      - name: Dump libbox API (diagnostics)
+        if: always()
+        run: |
+          AAR=$(find ~/.gradle -name "libbox*.aar" | head -1)
+          echo "AAR: $AAR"
+          mkdir -p /tmp/lb && cd /tmp/lb && unzip -o -q "$AAR" && ls -la
+          for c in PlatformInterface CommandServer CommandServerHandler TunOptions OverrideOptions Libbox InterfaceUpdateListener LocalDNSTransport WIFIState NetworkInterfaceIterator; do
+            echo "===== $c"
+            javap -cp classes.jar "io.nekohasekai.libbox.$c" || true
+          done
