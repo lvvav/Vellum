@@ -48,6 +48,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.vellum.app.AppState
 import com.vellum.app.BuildConfig
+import com.vellum.app.Diag
+import android.content.ClipData
+import android.content.Context
+import android.content.ClipboardManager
+import android.widget.Toast
 import com.vellum.app.Updater
 import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableIntStateOf
@@ -106,6 +111,10 @@ fun SettingsScreen(s: AppState) {
 
         Group("Проверка серверов") {
             SwitchRow(Icons.Rounded.Bolt, "Полная проверка", "Через VPN-ядро: дольше, зато точнее", s.fullCheck) { s.changeFullCheck(it) }
+        }
+
+        Group("Диагностика") {
+            DiagBlock()
         }
 
         Group("Вид") {
@@ -247,6 +256,33 @@ private fun UpdateBlock() {
                 style = Type.Label,
                 color = Color.Black
             )
+        }
+    }
+}
+
+@Composable
+private fun DiagBlock() {
+    val ctx = LocalContext.current
+    var text by remember { mutableStateOf(Diag.last(ctx)) }
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text(text ?: "Ошибок не записано", style = Type.Caption)
+        Spacer(Modifier.height(10.dp))
+        Row {
+            Box(
+                Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))
+                    .clickable {
+                        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        cm.setPrimaryClip(ClipData.newPlainText("Vellum", text ?: ""))
+                        Toast.makeText(ctx, "Скопировано", Toast.LENGTH_SHORT).show()
+                    }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) { Text("Скопировать", style = Type.Label) }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))
+                    .clickable { Diag.clear(ctx); text = null }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) { Text("Очистить", style = Type.Label) }
         }
     }
 }

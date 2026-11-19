@@ -76,6 +76,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
                 box = server
                 mainHandler.post { VpnControl.conn = Conn.Connected }
             } catch (e: Throwable) {
+                Diag.save(this, "Ошибка VPN:\n" + e.stackTraceToString())
                 mainHandler.post {
                     Toast.makeText(this, "VPN не запустился: ${e.message}", Toast.LENGTH_LONG).show()
                     shutdown()
