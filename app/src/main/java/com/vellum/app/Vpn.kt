@@ -112,6 +112,8 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         protect(fd)
     }
 
+    override fun checkPlatformShell() {}
+
     override fun sendNotification(notification: Notification) {}
     override fun cancelNotification(identifier: String, typeID: Int) {}
 }
