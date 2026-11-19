@@ -79,7 +79,7 @@ private object Probe : PlatformInterface, CommandServerHandler {
     override fun closeNeighborMonitor(listener: NeighborUpdateListener) {}
     override fun createBridge(options: BridgeOptions): BridgeSession? = null
     override fun findConnectionOwner(ipProtocol: Int, sourceAddress: String, sourcePort: Int, destinationAddress: String, destinationPort: Int): ConnectionOwner? = null
-    override fun getInterfaces(): NetworkInterfaceIterator? = null
+    override fun getInterfaces(): NetworkInterfaceIterator? = Nets.iterator()
     override fun includeAllNetworks(): Boolean = false
     override fun localDNSTransport(): LocalDNSTransport? = null
     override fun lookupSFTPServer(): String = ""

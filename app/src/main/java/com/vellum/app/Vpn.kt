@@ -12,6 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.nekohasekai.libbox.CommandServer
 import io.nekohasekai.libbox.Libbox
+import io.nekohasekai.libbox.NetworkInterface
+import io.nekohasekai.libbox.NetworkInterfaceIterator
+import io.nekohasekai.libbox.InterfaceUpdateListener
 import io.nekohasekai.libbox.SetupOptions
 import io.nekohasekai.libbox.BridgeOptions
 import io.nekohasekai.libbox.BridgeSession
@@ -147,7 +150,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     override fun closeNeighborMonitor(listener: NeighborUpdateListener) {}
     override fun createBridge(options: BridgeOptions): BridgeSession? = null
     override fun findConnectionOwner(ipProtocol: Int, sourceAddress: String, sourcePort: Int, destinationAddress: String, destinationPort: Int): ConnectionOwner? = null
-    override fun getInterfaces(): NetworkInterfaceIterator? = null
+    override fun getInterfaces(): NetworkInterfaceIterator? = Nets.iterator()
     override fun includeAllNetworks(): Boolean = false
     override fun localDNSTransport(): LocalDNSTransport? = null
     override fun lookupSFTPServer(): String = ""
@@ -157,7 +160,9 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     override fun readWIFIState(): WIFIState? = null
     override fun registerMyInterface(name: String) {}
     override fun sendNotification(notification: Notification) {}
-    override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {}
+    override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
+        Nets.build().firstOrNull()?.let { listener.updateDefaultInterface(it.getName(), it.getIndex(), false, false) }
+    }
     override fun startNeighborMonitor(listener: NeighborUpdateListener) {}
     override fun tailscaleHostname(): String = ""
     override fun underNetworkExtension(): Boolean = false
@@ -176,4 +181,46 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         tun = pfd
         return pfd.fd
     }
+}
+
+/** Список сетевых интерфейсов телефона для libbox (он без них не может выбрать выход наружу). */
+object Nets {
+    class Strings(private val items: List<String>) : StringIterator {
+        private var i = 0
+        override fun hasNext(): Boolean = i < items.size
+        override fun len(): Int = items.size
+        override fun next(): String = items[i++]
+    }
+
+    class Iter(private val items: List<NetworkInterface>) : NetworkInterfaceIterator {
+        private var i = 0
+        override fun hasNext(): Boolean = i < items.size
+        override fun next(): NetworkInterface = items[i++]
+    }
+
+    fun build(): List<NetworkInterface> = runCatching {
+        java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())
+            .filter { it.isUp && !it.isLoopback }
+            .map { j ->
+                val n = NetworkInterface()
+                n.setIndex(j.index)
+                n.setMTU(runCatching { j.mtu }.getOrDefault(1500))
+                n.setName(j.name)
+                n.setAddresses(Strings(j.interfaceAddresses.map { "${it.address.hostAddress}/${it.networkPrefixLength}" }))
+                n.setFlags(0)
+                n.setType(
+                    when {
+                        j.name.startsWith("wlan") -> Libbox.InterfaceTypeWIFI
+                        j.name.startsWith("rmnet") || j.name.startsWith("ccmni") -> Libbox.InterfaceTypeCellular
+                        else -> Libbox.InterfaceTypeOther
+                    }
+                )
+                n.setDNSServer(Strings(emptyList()))
+                n.setGateway(Strings(emptyList()))
+                n.setMetered(false)
+                n
+            }
+    }.getOrDefault(emptyList())
+
+    fun iterator(): NetworkInterfaceIterator = Iter(build())
 }
