@@ -9,6 +9,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.nekohasekai.libbox.CommandServer
+import io.nekohasekai.libbox.BridgeOptions
+import io.nekohasekai.libbox.BridgeSession
+import io.nekohasekai.libbox.CommandServerHandler
+import io.nekohasekai.libbox.ConnectionOwner
+import io.nekohasekai.libbox.InterfaceUpdateListener
+import io.nekohasekai.libbox.LocalDNSTransport
+import io.nekohasekai.libbox.NeighborUpdateListener
+import io.nekohasekai.libbox.NetworkInterfaceIterator
+import io.nekohasekai.libbox.PlatformUser
+import io.nekohasekai.libbox.ShellSession
+import io.nekohasekai.libbox.StringIterator
+import io.nekohasekai.libbox.WIFIState
 import io.nekohasekai.libbox.CommandServerHandler
 import io.nekohasekai.libbox.Notification
 import io.nekohasekai.libbox.OverrideOptions
@@ -96,7 +108,37 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     override fun writeDebugMessage(message: String?) {}
     override fun connectSSHAgent(): Int = -1
 
-    // PlatformInterface
+    // PlatformInterface (сигнатуры из libbox 1.14.0)
+    override fun autoDetectInterfaceControl(fd: Int) {
+        protect(fd)
+    }
+
+    override fun cancelNotification(identifier: String, typeID: Int) {}
+    override fun checkPlatformShell() {}
+    override fun clearDNSCache() {}
+    override fun closeDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {}
+    override fun closeNeighborMonitor(listener: NeighborUpdateListener) {}
+    override fun createBridge(options: BridgeOptions): BridgeSession? = null
+    override fun findConnectionOwner(ipProtocol: Int, sourceAddress: String, sourcePort: Int, destinationAddress: String, destinationPort: Int): ConnectionOwner? = null
+    override fun getInterfaces(): NetworkInterfaceIterator? = null
+    override fun includeAllNetworks(): Boolean = false
+    override fun localDNSTransport(): LocalDNSTransport? = null
+    override fun lookupSFTPServer(): String = ""
+    override fun lookupUser(name: String): PlatformUser? = null
+    override fun openShellSession(user: PlatformUser?, command: String?, args: StringIterator?, dir: String?, cols: Int, rows: Int): ShellSession? = null
+    override fun readSystemSSHHostKey(): String = ""
+    override fun readWIFIState(): WIFIState? = null
+    override fun registerMyInterface(name: String) {}
+    override fun sendNotification(notification: Notification) {}
+    override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {}
+    override fun startNeighborMonitor(listener: NeighborUpdateListener) {}
+    override fun tailscaleHostname(): String = ""
+    override fun underNetworkExtension(): Boolean = false
+    override fun usePlatformAutoDetectInterfaceControl(): Boolean = true
+    override fun usePlatformBridge(): Boolean = false
+    override fun usePlatformShell(): Boolean = false
+    override fun useProcFS(): Boolean = false
+
     override fun openTun(options: TunOptions): Int {
         if (prepare(this) != null) error("нет разрешения на VPN")
         val pfd = Builder().setSession("Vellum").setMtu(options.mtu)
@@ -107,13 +149,4 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         tun = pfd
         return pfd.fd
     }
-
-    override fun autoDetectInterfaceControl(fd: Int) {
-        protect(fd)
-    }
-
-    override fun checkPlatformShell() {}
-
-    override fun sendNotification(notification: Notification) {}
-    override fun cancelNotification(identifier: String, typeID: Int) {}
 }
