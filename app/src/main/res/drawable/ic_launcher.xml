@@ -1,20 +1,15 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- фон: тёмный, как в приложении -->
-    <path android:fillColor="#FF080B16" android:pathData="M0,0h108v108h-108z" />
-    <!-- лист пергамента (vellum) со сложенным углом -->
-    <path android:fillColor="#FFF4F6FC"
-        android:pathData="M36,26h26l12,12v44a4,4 0,0 1,-4,4h-34a4,4 0,0 1,-4,-4v-52a4,4 0,0 1,4,-4z" />
-    <path android:fillColor="#FFD9DCE6"
-        android:pathData="M62,26l12,12h-8a4,4 0,0 1,-4,-4z" />
-    <!-- строки текста на листе -->
-    <path android:fillColor="#FF080B16" android:fillAlpha="0.18"
-        android:pathData="M40,48h22v2.6h-22z M40,55h22v2.6h-22z M40,62h16v2.6h-16z" />
-    <!-- щит с галочкой: защита соединения -->
+    <!-- фон: белый -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M0,0h108v108h-108z" />
+    <!-- ключ: головка-кольцо -->
+    <path android:fillColor="#FF0B1020" android:fillType="evenodd"
+        android:pathData="M40,38a16,16 0 1,0 0,32a16,16 0 1,0 0,-32z M40,46a8,8 0 1,1 0,16a8,8 0 1,1 0,-16z" />
+    <!-- ключ: стержень и бородки -->
+    <path android:fillColor="#FF0B1020"
+        android:pathData="M52,50h36v8h-36z M76,58h6v12h-6z M86,58h6v9h-6z" />
+    <!-- бирюзовый акцент в головке -->
     <path android:fillColor="#FF14B8A6"
-        android:pathData="M68,62l-9,-3.5 -9,3.5v8c0,5 4,8.5 9,10 5,-1.5 9,-5 9,-10z" />
-    <path android:strokeColor="#FFF4F6FC" android:strokeWidth="2"
-        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"
-        android:pathData="M55,70.5l2.5,2.5 4.5,-5" />
+        android:pathData="M40,46a8,8 0 1,1 0,16a8,8 0 1,1 0,-16z" />
 </vector>
