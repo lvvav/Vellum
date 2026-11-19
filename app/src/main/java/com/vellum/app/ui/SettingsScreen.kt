@@ -47,6 +47,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.vellum.app.AppState
+import com.vellum.app.BuildConfig
+import com.vellum.app.Updater
+import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingsScreen(s: AppState) {
@@ -89,6 +98,10 @@ fun SettingsScreen(s: AppState) {
             SwitchRow(Icons.Rounded.Bolt, "Подключаться при запуске", "Сразу выбирать лучший сервер", s.autoConnect) { s.autoConnect = it }
             Divider()
             SwitchRow(Icons.Rounded.Apps, "Только выбранные приложения", "Остальные идут напрямую", s.splitTunnel) { s.splitTunnel = it }
+        }
+
+        Group("Приложение") {
+            UpdateBlock()
         }
 
         Group("Вид") {
@@ -176,6 +189,60 @@ private fun AddChannel(onAdd: (String) -> Unit) {
         )
         Box(Modifier.size(34.dp).pressable { submit() }.glass(CircleShape, 1.4f), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Add, "Добавить", tint = Palette.Text, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun UpdateBlock() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf("Версия ${BuildConfig.VERSION_NAME}") }
+    var busy by remember { mutableStateOf(false) }
+    var pct by remember { mutableIntStateOf(-1) }
+
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("Vellum ${BuildConfig.VERSION_NAME}", style = Type.Label)
+        Text(status, style = Type.Caption)
+        Spacer(Modifier.height(12.dp))
+        Box(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                .background(if (busy) Color.White.copy(alpha = 0.18f) else Palette.Good.copy(alpha = 0.85f))
+                .clickable(enabled = !busy) {
+                    busy = true
+                    pct = -1
+                    status = "Проверяю обновление…"
+                    scope.launch {
+                        try {
+                            val latest = withContext(Dispatchers.IO) { Updater.check() }
+                            if (latest == null) {
+                                status = "Уже последняя версия"
+                            } else {
+                                status = "Скачиваю…"
+                                val file = withContext(Dispatchers.IO) {
+                                    Updater.download(ctx, latest) { p -> pct = p }
+                                }
+                                status = "Готово, открываю установку"
+                                Updater.install(ctx, file)
+                            }
+                        } catch (e: Exception) {
+                            status = e.message ?: "Не получилось обновить"
+                        }
+                        busy = false
+                    }
+                }
+                .padding(vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                when {
+                    busy && pct >= 0 -> "Скачиваю… $pct%"
+                    busy -> "Проверяю…"
+                    else -> "Скачать и обновить"
+                },
+                style = Type.Label,
+                color = Color.Black
+            )
         }
     }
 }

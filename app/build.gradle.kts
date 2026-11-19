@@ -11,15 +11,29 @@ android {
         applicationId = "com.vellum.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
+        // Коммит сборки: по нему приложение понимает, есть ли новее версия
+        buildConfigField("String", "COMMIT", "\"${System.getenv("GITHUB_SHA") ?: "dev"}\"")
+    }
+    // Один ключ для всех сборок, иначе обновление поверх установленной версии не встанет
+    signingConfigs {
+        create("shared") {
+            storeFile = file("vellum.jks")
+            storePassword = "vellum-app"
+            keyAlias = "vellum"
+            keyPassword = "vellum-app"
+        }
+    }
+    buildTypes {
+        getByName("debug") { signingConfig = signingConfigs.getByName("shared") }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 }
 
 dependencies {
