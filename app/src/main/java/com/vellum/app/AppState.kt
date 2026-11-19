@@ -92,12 +92,16 @@ class AppState(private val ctx: Context) {
         refreshing = true
         try {
             val sources = channels.toList()
+            val errors = mutableListOf<String>()
             val nodes = withContext(Dispatchers.IO) {
                 sources.flatMap { src ->
                     runCatching {
                         if (src.startsWith("http")) Links.fromSubscription(Links.fetch(src))
                         else listOfNotNull(Links.parse(src))
-                    }.getOrDefault(emptyList())
+                    }.getOrElse {
+                        errors.add("${src.take(40)}: ${it.javaClass.simpleName} ${it.message.orEmpty()}")
+                        emptyList()
+                    }
                 }
             }
             val list = nodes.map { Server("🌐", it.name, null, it.type, it.outbound.toString()) }
@@ -106,7 +110,7 @@ class AppState(private val ctx: Context) {
             selected = 0
             Store.saveServers(ctx, list)
             Store.saveSelected(ctx, 0)
-            if (list.isEmpty()) return "Серверов не найдено"
+            if (list.isEmpty()) return if (errors.isNotEmpty()) "Не загрузилось: ${errors.first()}" else "В источнике нет ссылок vless/vmess/trojan/ss"
             checkAll()
             return "Рабочих: ${servers.count { it.ping != null }} из ${servers.size}"
         } finally {
