@@ -50,6 +50,4 @@ jobs:
         run: |
           AAR=$(find ~/.gradle -name "libbox*.aar" | head -1)
           mkdir -p /tmp/lb && cd /tmp/lb && unzip -o -q "$AAR"
-          echo "===== setup-related Libbox methods"
-          javap -cp classes.jar io.nekohasekai.libbox.Libbox | grep -iE "setup|basePath|workingPath|directory" || true
-          for c in SetupOptions; do echo "===== $c"; javap -cp classes.jar "io.nekohasekai.libbox.$c" || true; done
+          for c in NetworkInterfaceIterator NetworkInterface InterfaceUpdateListener StringIterator; do echo "===== $c"; javap -cp classes.jar "io.nekohasekai.libbox.$c" || true; done
