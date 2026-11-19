@@ -11,6 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.nekohasekai.libbox.CommandServer
+import io.nekohasekai.libbox.Libbox
+import io.nekohasekai.libbox.SetupOptions
 import io.nekohasekai.libbox.BridgeOptions
 import io.nekohasekai.libbox.BridgeSession
 import io.nekohasekai.libbox.CommandServerHandler
@@ -29,6 +31,7 @@ import io.nekohasekai.libbox.PlatformInterface
 import io.nekohasekai.libbox.SystemProxyStatus
 import io.nekohasekai.libbox.TunOptions
 import org.json.JSONObject
+import java.io.File
 
 /** Состояние подключения: его читают экран и сервис. */
 object VpnControl {
@@ -60,6 +63,21 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     private var tun: ParcelFileDescriptor? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    /** libbox должен знать, где можно писать служебные файлы (иначе падает на read-only). */
+    private fun setupLibbox() {
+        if (libboxReady) return
+        val opts = SetupOptions()
+        opts.basePath = filesDir.absolutePath
+        opts.workingPath = File(filesDir, "work").apply { mkdirs() }.absolutePath
+        opts.tempPath = cacheDir.absolutePath
+        Libbox.setup(opts)
+        libboxReady = true
+    }
+
+    companion object {
+        @Volatile private var libboxReady = false
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == Vpn.ACTION_STOP) {
             shutdown()
@@ -70,6 +88,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         // Запуск ядра тяжёлый и блокирующий: делаем его не в главном потоке, интерфейс не должен висеть
         Thread {
             try {
+                setupLibbox()
                 val server = CommandServer(this, this)
                 server.start()
                 server.startOrReloadService(config, OverrideOptions())
