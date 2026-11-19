@@ -15,6 +15,8 @@ android {
         versionName = "0.2"
         // Коммит сборки: по нему приложение понимает, есть ли новее версия
         buildConfigField("String", "COMMIT", "\"${System.getenv("GITHUB_SHA") ?: "dev"}\"")
+        // Только две архитектуры телефонов: libbox тянет нативные библиотеки на все, из-за этого APK 300+ МБ
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     // Один ключ для всех сборок, иначе обновление поверх установленной версии не встанет
     signingConfigs {
