@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.vellum.app.AppState
+import com.vellum.app.Server
 
 @Composable
 fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
