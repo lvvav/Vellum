@@ -1,32 +1,27 @@
 package com.vellum.app
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class Conn { Idle, Connecting, Connected }
 
-data class Server(val flag: String, val name: String, val ping: Int?)
+/** Сервер для экрана: outbound храним строкой JSON. */
+data class Server(val flag: String, val name: String, val ping: Int?, val type: String = "", val outbound: String = "")
 
-/** Demo state. Later this is replaced by the real VPN service + channel parser. */
-class AppState {
-    var conn by mutableStateOf(Conn.Idle)
+class AppState(private val ctx: Context) {
+    val conn: Conn get() = VpnControl.conn
     var seconds by mutableIntStateOf(0)
     var selected by mutableIntStateOf(0)
     var refreshing by mutableStateOf(false)
 
-    val servers = mutableStateListOf(
-        Server("🇫🇮", "Финляндия", 41),
-        Server("🇩🇪", "Германия", 48),
-        Server("🇳🇱", "Нидерланды", 62),
-        Server("🇸🇪", "Швеция", 77),
-        Server("🇺🇸", "США", 164),
-        Server("🇹🇷", "Турция", null),
-    )
-    val channels = mutableStateListOf("@my_channel_one", "@my_channel_two")
+    val servers = mutableStateListOf<Server>()
+    val channels = mutableStateListOf<String>()
 
     var autoUpdate by mutableStateOf(true)
     var intervalHours by mutableIntStateOf(3)
@@ -35,29 +30,56 @@ class AppState {
     var splitTunnel by mutableStateOf(false)
     var smoothMotion by mutableStateOf(true)
 
-    val alive get() = servers.count { it.ping != null }
+    val alive get() = servers.size
 
-    suspend fun toggle() {
-        when (conn) {
-            Conn.Idle -> {
-                conn = Conn.Connecting
-                delay(1800)
-                seconds = 0
-                conn = Conn.Connected
-            }
-            Conn.Connected -> conn = Conn.Idle
-            Conn.Connecting -> Unit
-        }
+    init {
+        channels.addAll(Store.sources(ctx))
+        servers.addAll(Store.servers(ctx))
+        selected = Store.selected(ctx).coerceIn(0, (servers.size - 1).coerceAtLeast(0))
     }
 
-    suspend fun refresh() {
-        if (refreshing) return
+    fun current(): Server? = servers.getOrNull(selected)
+
+    fun select(i: Int) {
+        selected = i
+        Store.saveSelected(ctx, i)
+    }
+
+    fun addSource(x: String) {
+        val t = x.trim()
+        if (t.isEmpty() || channels.contains(t)) return
+        channels.add(t)
+        Store.saveSources(ctx, channels.toList())
+    }
+
+    fun removeSource(i: Int) {
+        channels.removeAt(i)
+        Store.saveSources(ctx, channels.toList())
+    }
+
+    /** Загружает все подписки и ссылки, собирает список серверов. Возвращает текст для пользователя. */
+    suspend fun refresh(): String {
+        if (refreshing) return "Уже обновляем"
         refreshing = true
-        delay(1600)
-        val fresh = servers.map { s -> s.copy(ping = if (s.ping == null) 90 else (s.ping + (-12..14).random()).coerceAtLeast(20)) }
-        servers.clear()
-        servers.addAll(fresh.sortedBy { it.ping ?: Int.MAX_VALUE })
-        selected = 0
-        refreshing = false
+        return try {
+            val sources = channels.toList()
+            val nodes = withContext(Dispatchers.IO) {
+                sources.flatMap { src ->
+                    runCatching {
+                        if (src.startsWith("http")) Links.fromSubscription(Links.fetch(src))
+                        else listOfNotNull(Links.parse(src))
+                    }.getOrDefault(emptyList())
+                }
+            }
+            val list = nodes.map { Server("🌐", it.name, null, it.type, it.outbound.toString()) }
+            servers.clear()
+            servers.addAll(list)
+            selected = 0
+            Store.saveServers(ctx, list)
+            Store.saveSelected(ctx, 0)
+            if (list.isEmpty()) "Серверов не найдено" else "Серверов: ${list.size}"
+        } finally {
+            refreshing = false
+        }
     }
 }

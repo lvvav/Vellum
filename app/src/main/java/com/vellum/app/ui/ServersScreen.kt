@@ -48,7 +48,7 @@ fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text("Серверы", style = Type.Display)
                 Text(
-                    if (s.refreshing) "Проверяем пинг…" else "Живых: ${s.alive} из ${s.servers.size}",
+                    if (s.refreshing) "Загружаем…" else "Серверов: ${s.servers.size}",
                     style = Type.Caption, modifier = Modifier.padding(top = 2.dp)
                 )
             }
@@ -75,7 +75,7 @@ fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
                 )
                 Row(
                     Modifier.fillMaxWidth()
-                        .pressable { if (server.ping != null) s.selected = i }
+                        .pressable { s.select(i) }
                         .glass(RoundedCornerShape(22.dp), if (on) 1.5f else 1f)
                         .then(Modifier.padding(0.dp))
                         .let { it },
@@ -91,7 +91,7 @@ fun ServersScreen(s: AppState, onRefresh: () -> Unit) {
                         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                             Text(server.name, style = Type.Title)
                             Text(
-                                if (server.ping == null) "Не отвечает" else if (on) "Выбран" else "Доступен",
+                                if (on) "Выбран" else server.type.uppercase().ifBlank { "Доступен" },
                                 style = Type.Caption
                             )
                         }

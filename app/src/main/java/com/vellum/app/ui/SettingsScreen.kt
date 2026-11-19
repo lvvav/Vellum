@@ -71,13 +71,13 @@ fun SettingsScreen(s: AppState) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Link, null, tint = Palette.Muted, modifier = Modifier.size(20.dp))
                     Text(ch, style = Type.Body, modifier = Modifier.weight(1f).padding(start = 12.dp))
-                    Box(Modifier.size(32.dp).pressable { s.channels.removeAt(i) }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(32.dp).pressable { s.removeSource(i) }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.Close, "Удалить", tint = Palette.Muted, modifier = Modifier.size(18.dp))
                     }
                 }
                 Divider()
             }
-            AddChannel { s.channels.add(it) }
+            AddChannel { s.addSource(it) }
         }
 
         Group("Обновление") {

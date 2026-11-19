@@ -1,0 +1,117 @@
+package com.vellum.app
+
+import android.content.Context
+import android.content.Intent
+import android.net.VpnService
+import android.os.ParcelFileDescriptor
+import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import io.nekohasekai.libbox.CommandServer
+import io.nekohasekai.libbox.CommandServerHandler
+import io.nekohasekai.libbox.Notification
+import io.nekohasekai.libbox.OverrideOptions
+import io.nekohasekai.libbox.PlatformInterface
+import io.nekohasekai.libbox.SystemProxyStatus
+import io.nekohasekai.libbox.TunOptions
+import org.json.JSONObject
+
+/** Состояние подключения: его читают экран и сервис. */
+object VpnControl {
+    var conn by mutableStateOf(Conn.Idle)
+}
+
+object Vpn {
+    const val ACTION_STOP = "app.vellum.STOP"
+    const val EXTRA_CONFIG = "config"
+
+    fun start(ctx: Context, server: Server?) {
+        if (server == null) {
+            Toast.makeText(ctx, "Сначала обнови список серверов", Toast.LENGTH_LONG).show()
+            return
+        }
+        VpnControl.conn = Conn.Connecting
+        val config = Links.config(JSONObject(server.outbound))
+        ctx.startService(Intent(ctx, VellumVpnService::class.java).putExtra(EXTRA_CONFIG, config))
+    }
+
+    fun stop(ctx: Context) {
+        ctx.startService(Intent(ctx, VellumVpnService::class.java).setAction(ACTION_STOP))
+    }
+}
+
+/** Системный VPN-сервис: поднимает туннель и запускает sing-box через libbox. */
+class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
+    private var box: CommandServer? = null
+    private var tun: ParcelFileDescriptor? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == Vpn.ACTION_STOP) {
+            shutdown()
+            return START_NOT_STICKY
+        }
+        val config = intent?.getStringExtra(Vpn.EXTRA_CONFIG) ?: return START_NOT_STICKY
+        closeBox()
+        try {
+            val server = CommandServer(this, this)
+            server.start()
+            server.startOrReloadService(config, OverrideOptions())
+            box = server
+            VpnControl.conn = Conn.Connected
+        } catch (e: Exception) {
+            Toast.makeText(this, "VPN не запустился: ${e.message}", Toast.LENGTH_LONG).show()
+            shutdown()
+        }
+        return START_NOT_STICKY
+    }
+
+    override fun onRevoke() = shutdown()
+
+    override fun onDestroy() {
+        closeBox()
+        super.onDestroy()
+    }
+
+    private fun closeBox() {
+        runCatching { box?.closeService() }
+        runCatching { box?.close() }
+        box = null
+        runCatching { tun?.close() }
+        tun = null
+    }
+
+    private fun shutdown() {
+        closeBox()
+        VpnControl.conn = Conn.Idle
+        stopSelf()
+    }
+
+    // CommandServerHandler
+    override fun serviceStop() = shutdown()
+    override fun serviceReload() {}
+    override fun getSystemProxyStatus(): SystemProxyStatus? = null
+    override fun setSystemProxyEnabled(isEnabled: Boolean) {}
+    override fun triggerNativeCrash() {}
+    override fun writeDebugMessage(message: String?) {}
+    override fun connectSSHAgent(): Int = -1
+
+    // PlatformInterface
+    override fun openTun(options: TunOptions): Int {
+        if (prepare(this) != null) error("нет разрешения на VPN")
+        val pfd = Builder().setSession("Vellum").setMtu(options.mtu)
+            .addAddress("172.19.0.1", 30)
+            .addRoute("0.0.0.0", 0)
+            .addDnsServer("172.19.0.2")
+            .establish() ?: error("VPN не установлен")
+        tun = pfd
+        return pfd.fd
+    }
+
+    override fun autoDetectInterfaceControl(fd: Int) {
+        protect(fd)
+    }
+
+    override fun sendNotification(notification: Notification) {}
+    override fun cancelNotification(identifier: String, typeID: Int) {}
+}
