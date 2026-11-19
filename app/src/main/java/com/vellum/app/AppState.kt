@@ -45,7 +45,7 @@ class AppState(private val ctx: Context) {
 
     fun current(): Server? = servers.getOrNull(selected)
 
-    fun setFullCheck(v: Boolean) {
+    fun changeFullCheck(v: Boolean) {
         fullCheck = v
         Store.saveFullCheck(ctx, v)
     }

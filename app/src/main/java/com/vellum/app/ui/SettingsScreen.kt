@@ -105,7 +105,7 @@ fun SettingsScreen(s: AppState) {
         }
 
         Group("Проверка серверов") {
-            SwitchRow(Icons.Rounded.Bolt, "Полная проверка", "Через VPN-ядро: дольше, зато точнее", s.fullCheck) { s.setFullCheck(it) }
+            SwitchRow(Icons.Rounded.Bolt, "Полная проверка", "Через VPN-ядро: дольше, зато точнее", s.fullCheck) { s.changeFullCheck(it) }
         }
 
         Group("Вид") {
