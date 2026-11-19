@@ -8,7 +8,7 @@
         android:pathData="M40,38a16,16 0 1,0 0,32a16,16 0 1,0 0,-32z M40,46a8,8 0 1,1 0,16a8,8 0 1,1 0,-16z" />
     <!-- ключ: стержень и бородки -->
     <path android:fillColor="#FF0B1020"
-        android:pathData="M52,50h36v8h-36z M76,58h6v12h-6z M86,58h6v9h-6z" />
+        android:pathData="M52,50h36v8h-36z M72,58h6v10h-6z M80,58h6v7h-6z" />
     <!-- бирюзовый акцент в головке -->
     <path android:fillColor="#FF14B8A6"
         android:pathData="M40,46a8,8 0 1,1 0,16a8,8 0 1,1 0,-16z" />
