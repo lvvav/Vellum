@@ -11,8 +11,8 @@ android {
         applicationId = "com.vellum.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
         // Коммит сборки: по нему приложение понимает, есть ли новее версия
         buildConfigField("String", "COMMIT", "\"${System.getenv("GITHUB_SHA") ?: "dev"}\"")
         // Только современные телефоны (arm64): libbox тянет нативные библиотеки на все, из-за этого APK 300+ МБ
