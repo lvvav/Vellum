@@ -48,6 +48,8 @@ object Vpn {
             Toast.makeText(ctx, "Сначала обнови список серверов", Toast.LENGTH_LONG).show()
             return
         }
+        Diag.resetTrace(ctx)
+        Diag.step(ctx, "1. нажали включить, конфиг готов")
         VpnControl.conn = Conn.Connecting
         val config = Links.config(JSONObject(server.outbound))
         ctx.startService(Intent(ctx, VellumVpnService::class.java).putExtra(EXTRA_CONFIG, config))
@@ -80,6 +82,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Diag.step(this, "2. сервис получил команду: ${intent?.action ?: "старт"}")
         if (intent?.action == Vpn.ACTION_STOP) {
             shutdown()
             return START_NOT_STICKY
@@ -89,10 +92,15 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
         // Запуск ядра тяжёлый и блокирующий: делаем его не в главном потоке, интерфейс не должен висеть
         Thread {
             try {
+                Diag.step(this, "3. готовим libbox")
                 setupLibbox()
+                Diag.step(this, "4. libbox готов, создаём сервер")
                 val server = CommandServer(this, this)
+                Diag.step(this, "5. сервер создан, запускаем")
                 server.start()
+                Diag.step(this, "6. сервер запущен, стартуем ядро с конфигом")
                 server.startOrReloadService(config, OverrideOptions())
+                Diag.step(this, "7. ядро запущено")
                 box = server
                 mainHandler.post { VpnControl.conn = Conn.Connected }
             } catch (e: Throwable) {
@@ -148,7 +156,10 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     override fun closeNeighborMonitor(listener: NeighborUpdateListener) {}
     override fun createBridge(options: BridgeOptions): BridgeSession? = null
     override fun findConnectionOwner(ipProtocol: Int, sourceAddress: String, sourcePort: Int, destinationAddress: String, destinationPort: Int): ConnectionOwner? = null
-    override fun getInterfaces(): NetworkInterfaceIterator? = Nets.iterator()
+    override fun getInterfaces(): NetworkInterfaceIterator? {
+        Diag.step(this, "интерфейсы запрошены")
+        return Nets.iterator()
+    }
     override fun includeAllNetworks(): Boolean = false
     override fun localDNSTransport(): LocalDNSTransport? = null
     override fun lookupSFTPServer(): String = ""
@@ -170,6 +181,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
     override fun useProcFS(): Boolean = false
 
     override fun openTun(options: TunOptions): Int {
+        Diag.step(this, "8. openTun: ядро просит туннель")
         if (prepare(this) != null) error("нет разрешения на VPN")
         val pfd = Builder().setSession("Vellum").setMtu(options.mtu)
             .addAddress("172.19.0.1", 30)
@@ -177,6 +189,7 @@ class VellumVpnService : VpnService(), CommandServerHandler, PlatformInterface {
             .addDnsServer("172.19.0.2")
             .establish() ?: error("VPN не установлен")
         tun = pfd
+        Diag.step(this, "9. туннель открыт")
         return pfd.fd
     }
 }

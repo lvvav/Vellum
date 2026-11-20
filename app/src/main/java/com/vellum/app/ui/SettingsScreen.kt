@@ -265,14 +265,14 @@ private fun DiagBlock() {
     val ctx = LocalContext.current
     var text by remember { mutableStateOf(Diag.last(ctx)) }
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(text ?: "Ошибок не записано", style = Type.Caption)
+        Text((text ?: "Ошибок не записано") + "\n\nШаги VPN:\n" + Diag.trace(ctx), style = Type.Caption)
         Spacer(Modifier.height(10.dp))
         Row {
             Box(
                 Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))
                     .clickable {
                         val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cm.setPrimaryClip(ClipData.newPlainText("Vellum", text ?: ""))
+                        cm.setPrimaryClip(ClipData.newPlainText("Vellum", (text ?: "") + "\n\nШаги VPN:\n" + Diag.trace(ctx)))
                         Toast.makeText(ctx, "Скопировано", Toast.LENGTH_SHORT).show()
                     }
                     .padding(horizontal = 14.dp, vertical = 8.dp)

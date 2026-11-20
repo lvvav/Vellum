@@ -25,6 +25,19 @@ object Diag {
 
     fun last(ctx: Context): String? = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("last", null)
 
+    /** Журнал шагов запуска VPN: пишется сразу на диск, поэтому виден даже после нативного падения. */
+    fun step(ctx: Context, msg: String) {
+        val p = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        val old = p.getString("trace", "") ?: ""
+        p.edit().putString("trace", (old + "\n" + msg).takeLast(3000)).commit()
+    }
+
+    fun resetTrace(ctx: Context) {
+        ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString("trace", "").commit()
+    }
+
+    fun trace(ctx: Context): String = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("trace", "") ?: ""
+
     fun clear(ctx: Context) {
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().remove("last").apply()
     }
